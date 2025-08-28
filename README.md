@@ -13,6 +13,8 @@ This project aims to automate the deployment of a containerized e-commerce appli
 
 ## Architecture
 
+![alt text](ecommer-ecs-infra.png)
+
 The project uses the following AWS components:
 
 - **Custom VPC** with public and private subnets  
