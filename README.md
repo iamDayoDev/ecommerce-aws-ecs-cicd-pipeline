@@ -1,96 +1,108 @@
-# E-Commerce Website with ECS and CI/CD Pipeline
+# AWS ECS CI/CD E-Commerce Deployment
 
-In today’s digital landscape, delivering a scalable, resilient, and automated platform for your e-commerce business is key to staying competitive. This project demonstrates a complete, enterprise-grade approach to deploying an e-commerce website on AWS ECS Fargate — a serverless container platform — alongside Application Load Balancer (ALB), a custom VPC, and Docker containers sourced from Amazon Elastic Container Registry (ECR).
+This project demonstrates how to deploy an **e-commerce website** on **Amazon ECS** using **AWS Developer Tools** including **CodeCommit, CodeBuild, CodeDeploy, and CodePipeline**. The project highlights containerized application deployment with a fully automated CI/CD pipeline, running in a secure custom VPC with load balancing.
 
-To enable a smooth and reliable delivery pipeline, we’ve implemented AWS CodePipeline, which is triggered directly by code pushes to a Github repository. This automated pipeline handles everything from building your container images to safely rolling out your application to production — with blue/green deployments to enable zero-downtime updates. All the underlying infrastructure — from networks to load balancing and ECS clusters — is provisioned and managed end-to-end using Terraform as Infrastructure as Code (IaC), ensuring your stack is reproducible, auditable, and easy to modify.
+---
 
-In this article, we’ll walk you through each step of this architecture, explain its key components, and show you how you can deploy a scalable, containerized e-commerce platform with confidence, ease, and operational excellence.
 
-## Project Architecture
+## Project Overview
 
-<p align="center">
-<img src="https://i.imgur.com/PJ4eSIE.png" height="80%" width="80%" alt="Disk Sanitization Steps"/>
-<br />
-  
-## Infrastructure Components
+This project aims to automate the deployment of a containerized e-commerce application on **AWS ECS**. Using AWS Developer Tools, the pipeline takes code from the repository, builds a Docker image, pushes it to **ECR**, and deploys it seamlessly to ECS. This ensures that updates to the application are deployed automatically with minimal manual intervention.
 
-- **VPC**: Isolated network with public and private subnets
-- **ECS Cluster**: Fargate-based container hosting
-- **ALB**: Load balancer for routing traffic
-- **ECR**: Container registry for Docker images
-- **CodePipeline**: Orchestrates the CI/CD workflow
-- **CodeBuild**: Builds Docker images
-- **CodeDeploy**: Deploys to ECS with blue/green strategy
+---
 
-## How it Works
+## Architecture
 
-The architecture is designed to enable continuous delivery with zero-downtime deployments while retaining complete control over your stack through Infrastructure as Code. Here’s a step-by-step walkthrough of how everything works together:
+The project uses the following AWS components:
 
-- **Developer Pushes Code to GitHub**: The pipeline starts when a developer pushes a new code change to the application’s GitHub repository (typically to the main or master branch).
-- **Source Capture by CodePipeline**: AWS CodePipeline is configured to track this repository. Once a new commit is made, CodePipeline is triggered, retrieving the updated code for processing.
-- **Docker Image Build and Push to ECR**: CodeBuild, integrated into the pipeline, builds a new Docker image from your application’s source code. This image is then pushed to Amazon Elastic Container Registry (ECR), a fully managed container image repository.
+- **Custom VPC** with public and private subnets  
+- **Internet Gateway & NAT Gateway** for secure networking  
+- **ECS Cluster** to orchestrate containers  
+- **Task Definitions** to define container configuration  
+- **ECS Service** to maintain and scale running tasks  
+- **Application Load Balancer (ALB)** to route traffic  
+- **ECR Repository** to store Docker images  
+- **CodeCommit, CodeBuild, CodeDeploy, and CodePipeline** for full CI/CD automation  
 
-- **Infrastructure Managed by Terraform**: All related AWS resources — VPC, ECS Cluster, Application Load Balancer, Security Groups, Auto Scaling configuration, and more — are defined and deployed using Terraform. This guarantees a consistent, auditable, and reproducible environment across stages (development, staging, production).
+---
 
-- **Blue/Green Deployment with ECS and ALB**: ECS Fargate runs your container workloads in tasks placed within your ECS Cluster.
-The Application Load Balancer is configured with blue and green target groups — allowing for a shift of live traffic from the old version (blue) to the new version (green) — after health checks pass, ensuring zero-downtime for your users.
+## Project Steps
 
-- **Automated Validation and Promotion**: Once the new containers become healthy, CodePipeline performs automated checks (such as health checks or smoke tests). If everything is healthy, the pipeline promotes the green environment, sending all live customer requests to it. The previous (blue) environment is kept alive briefly for fallback if needed.
+### Step 1: Custom VPC Setup
 
-- **Continuous Improvement and Repeat** This process forms a fully automated pipeline — from code commit to production — allowing you to deploy new features and bug fixes safely, frequently, and efficiently, with confidence in your platform’s stability.
+I created a **custom VPC** using the “VPC and More” option in the AWS console. This automatically provisioned public and private subnets, an internet gateway, a NAT gateway, and route tables. The setup allowed the load balancer to run in the public subnet while ECS tasks ran securely in the private subnets.
 
-## Prerequisites
+---
 
-- AWS Account
-- GitHub repository with your code
-- Terraform installed locally
-- AWS CLI configured
+### Step 2: Create ECR Repository
 
-## Setup Instructions
+Next, I created a **repository in Amazon ECR**. Using the “View Push Commands” option, I built the Docker image locally and pushed it to ECR. This ensured that my application image was stored securely and ready for deployment.
 
-### 1. Update GitHub Repository Information
+---
 
-Update the GitHub repository variables in `infra/terraform.tfvars`:
+### Step 3: ECS Cluster and Task Definition
 
-```hcl
-github_repo  = "your-github-username/e-commerce-website-with-ecs"
-github_branch = "main"
-```
+I then created an **ECS cluster**, which would host my application containers. Following that, I defined a **task definition** that specified which Docker image to use, CPU and memory allocations, networking configuration, and port mappings — essentially creating a blueprint for running the application.
 
-### 2. Deploy Infrastructure
+---
 
-```bash
-cd infra
-terraform init
-terraform plan
-terraform apply --auto-approve
-```
+### Step 4: ECS Service Creation
 
-### 3. Complete GitHub Connection
+From the ECS cluster, I created a **service**. The service ensured that a desired number of tasks were always running, automatically restarting failed tasks to maintain application availability.
 
-After deployment, you need to complete the GitHub connection:
+---
 
-1. Go to AWS Console > Developer Tools > Settings > Connections
-2. Find the connection named "github-connection"
-3. Click "Update pending connection"
-4. Follow the prompts to connect to your GitHub account
+### Step 5: Verify ECS Deployment
 
-### 4. Push Code to Trigger Pipeline
+To check that the ECS deployment was working, I copied the **DNS name of the Application Load Balancer** into a browser. The application loaded successfully, confirming that the ECS tasks were running correctly and accessible externally.
 
-Once the connection is established, push code to your repository to trigger the pipeline:
+---
 
-```bash
-git add .
-git commit -m "Initial commit"
-git push origin main
-```
+### Step 6: Automation with CodePipeline and CodeBuild
 
-## Cleanup
+Next, I moved to the automation phase. I set up **CodePipeline** to orchestrate the workflow and **CodeBuild** to:
 
-To remove all resources:
+- Pull the latest code from the repository  
+- Build the Docker image  
+- Push the image to **ECR**  
 
-```bash
-cd infra
-terraform destroy
-```# E-Commerce-CICD-with-ECS
-# cicd-pipeline-on-aws-ecs
+I also edited the environment variables in `buildspec.yml` to ensure the build process had the correct configuration for connecting to ECS and other resources.
+
+---
+
+### Step 7: Deployment with CodeDeploy
+
+In the deployment stage, I configured **CodeDeploy** and added `imagedefinitions.json` to properly map the build artifacts to ECS tasks.  
+
+During initial runs, I faced errors:
+
+- **Build Phase Permission Error:** CodeBuild couldn’t access ECR. Adding the **AmazonEC2ContainerRegistryPowerUser** policy resolved it.  
+- **Deploy Phase Error:** CodeDeploy couldn’t find the ECS container. This was fixed by correcting the container name in `buildspec.yml` and adding `REPOSITORY_URI` to the environment variables.  
+
+Once these issues were resolved, the pipeline ran successfully, automatically deploying updates to ECS.
+
+---
+
+## Challenges Faced
+
+- Misconfigured IAM roles for CodeBuild preventing ECR access  
+- Mismatched container names between ECS and `buildspec.yml`  
+- Missing environment variables causing deployment errors  
+
+---
+
+## Key Takeaways
+
+- Automation is powerful but requires precise configuration  
+- Proper IAM permissions are essential for AWS CI/CD workflows  
+- Infrastructure planning with VPC, subnets, and load balancers ensures scalable and secure deployments  
+- Troubleshooting is part of learning; each fix strengthens understanding  
+
+---
+
+## License
+
+This project is licensed under the MIT License.  
+
+---
+
